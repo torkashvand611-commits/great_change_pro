@@ -1,43 +1,26 @@
 workflows:
-  android-workflow:
-    name: Build APK
-    instance_type: linux
-    max_build_duration: 120
-    
-    triggering:
-      events:
-        - push
-        - pull_request
-    
+  great-change-pro-android:
+    name: Great Change Pro APK Build
+    max_build_duration: 60
     environment:
       java: 17
-      groups:
-        - android_credentials
-    
     scripts:
-      - name: Checkout
+      - name: Set up local.properties
         script: |
-          git clone https://github.com/$GITHUB_REPOSITORY.git .
-          git fetch origin $GITHUB_REF
-          git checkout $GITHUB_REF
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/local.properties"
       
-      - name: Build APK
+      - name: Make gradlew executable
         script: |
           chmod +x gradlew
-          ./gradlew clean assembleDebug
       
-      - name: Copy APK
+      - name: Build Debug APK
         script: |
-          mkdir -p build_artifacts
-          cp app/build/outputs/apk/debug/*.apk build_artifacts/ || true
+          ./gradlew assembleDebug
     
     artifacts:
-      - build_artifacts/**/*.apk
+      - app/build/outputs/apk/debug/*.apk
     
     publishing:
       email:
         recipients:
-          - torkashvand611@gmail.com
-        notify:
-          success: true
-          failure: true
+          - your-email@example.com
