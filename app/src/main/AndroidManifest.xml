@@ -6,7 +6,7 @@
         android:label="Great Change Pro"
         android:allowBackup="true"
         android:supportsRtl="true">
-        
+
         <activity
             android:name=".MainActivity"
             android:screenOrientation="portrait"
@@ -16,12 +16,12 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        
+
         <activity
             android:name=".AssessmentActivity"
             android:screenOrientation="portrait"
             android:exported="false" />
-            
+
     </application>
 
 </manifest>
