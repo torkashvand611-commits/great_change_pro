@@ -8,19 +8,15 @@ workflows:
       - name: Set up local.properties
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/local.properties"
-      
-      - name: Make gradlew executable
+
+      - name: Download Gradle 8.7
         script: |
-          chmod +x gradlew
-      
+          curl -sL https://services.gradle.org/distributions/gradle-8.7-bin.zip -o /tmp/gradle-8.7.zip
+          unzip -q /tmp/gradle-8.7.zip -d /tmp/gradle-dist
+
       - name: Build Debug APK
         script: |
-          ./gradlew assembleDebug
-    
+          /tmp/gradle-dist/gradle-8.7/bin/gradle assembleDebug
+
     artifacts:
       - app/build/outputs/apk/debug/*.apk
-    
-    publishing:
-      email:
-        recipients:
-          - your-email@example.com
