@@ -11,11 +11,11 @@ import android.view.*;
 import android.widget.*;
 import com.greatchange.app.utils.ProgressCalculator;
 import com.greatchange.app.utils.UIHelper;
+import com.greatchange.app.ai.QwenClient;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class MainActivity extends Activity {
-    // پالت رنگی روشن و آرام (طبق طرح جدید)
     final int MINT   = Color.rgb(191, 227, 214);
     final int CREAM  = Color.rgb(250, 245, 234);
     final int TEAL   = Color.rgb(42, 157, 143);
@@ -51,7 +51,7 @@ public class MainActivity extends Activity {
         {"Farmer Walk","3 × 30–45 ثانیه","۹۰ ثانیه","سینه باز، شانه‌ها پایین و عقب، شکم سفت و قدم‌های کنترل‌شده."}
     };
 
-    String[] mentalDefault={"روتین صبح ۱۵ دقیقه","۵ دقیقه تصویرسازی","تمرین اراده","تمرین کاریزما","۱۰ دقیقه مطالعه","روتین شب"};
+    String[] mentalDefault={"روتین صبح ۱۵ دقیقه"," دقیقه تصویرسازی","تمرین اراده","تمرین کاریزما","۱۰ دقیقه مطالعه","روتین شب"};
     String[] mentalDesc={
         "۲ دقیقه تنفس آرام، ۵ دقیقه تصویرسازی نسخه بهتر خودت، مرور هدف امروز و انتخاب یک کار سخت.",
         "چشم‌ها را ببند و خودت را در حالتی ببین که آرام، قوی، مرتب و با اعتمادبه‌نفس رفتار می‌کنی.",
@@ -77,7 +77,7 @@ public class MainActivity extends Activity {
         }
 
         shell();
-        setSection(2); // شروع از خانه
+        setSection(2);
     }
 
     int dp(int n) {
@@ -134,14 +134,13 @@ public class MainActivity extends Activity {
         sv.addView(content);
         root.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1));
 
-        // نوار پایین با ۶ قسمت
         navBar = new LinearLayout(this);
         navBar.setOrientation(LinearLayout.HORIZONTAL);
         navBar.setBackgroundColor(CREAM);
         navBar.setPadding(dp(4), dp(6), dp(4), dp(10));
         navBar.setGravity(Gravity.CENTER);
 
-        String[] icons  = {"👤", "🏋️", "🏠", "🧠", "", "️"};
+        String[] icons  = {"👤", "️", "🏠", "🧠", "", "⚙️"};
         String[] labels = {"پروفایل", "ورزش", "خانه", "ذهن", "موسیقی", "تنظیمات"};
         for (int i = 0; i < NAV_COUNT; i++) {
             final int idx = i;
@@ -176,7 +175,7 @@ public class MainActivity extends Activity {
         content.removeAllViews();
     }
 
-    // ================= خانه =================
+    // ================= 🏠 خانه (با مربی AI) =================
     void home() {
         stopMusic();
         clear();
@@ -192,7 +191,6 @@ public class MainActivity extends Activity {
         int streak = progressCalc.getCurrentStreak();
         int programProgress = progressCalc.getProgramProgressPercentage();
 
-        // کارت امتیاز سلامت ذهن
         LinearLayout scoreCard = card(CREAM);
         scoreCard.addView(tv("سلامت ذهن", 14, DARK, true));
         LinearLayout row = new LinearLayout(this);
@@ -211,6 +209,40 @@ public class MainActivity extends Activity {
         scoreCard.addView(pb);
         scoreCard.addView(tv("روز " + currentDay + " از 90  •  زنجیره " + streak + " روز", 12, MUTED, false));
         content.addView(scoreCard);
+
+        // 🤖 کارت مربی هوش مصنوعی
+        LinearLayout aiCard = card(CREAM);
+        aiCard.addView(tv("🤖 مربی هوشمند AI", 17, TEAL, true));
+        final TextView aiAdvice = tv("روی دکمه بزن تا توصیه هوشمند امروزت را بگیری، یا هر سوالی داری بپرس", 13, MUTED, false);
+        aiCard.addView(aiAdvice);
+
+        final EditText aiInput = new EditText(this);
+        aiInput.setHint("سوال اختیاری... (مثلاً: امروز چی بخورم؟)");
+        aiInput.setHintTextColor(MUTED);
+        aiInput.setTextColor(DARK);
+        aiInput.setTextSize(13);
+        GradientDrawable aig = new GradientDrawable();
+        aig.setColor(Color.WHITE);
+        aig.setCornerRadius(dp(12));
+        aig.setStroke(dp(1), TEAL);
+        aiInput.setBackground(aig);
+        aiInput.setPadding(dp(12), dp(10), dp(12), dp(10));
+        aiInput.setLayoutParams(new LinearLayout.LayoutParams(-1, dp(70)));
+        aiCard.addView(aiInput);
+
+        Button askBtn = button("🤖 دریافت توصیه هوشمند", CREAM);
+        askBtn.setBackgroundColor(TEAL);
+        askBtn.setOnClickListener(v -> {
+            String q = aiInput.getText().toString().trim();
+            aiAdvice.setText("⏳ در حال فکر کردن...");
+            if (q.isEmpty()) {
+                fetchDailyAdvice(aiAdvice);
+            } else {
+                askQwen(q, aiAdvice);
+            }
+        });
+        aiCard.addView(askBtn);
+        content.addView(aiCard);
 
         // کارت چک‌لیست عادت‌ها
         LinearLayout habits = card(CREAM);
@@ -234,7 +266,6 @@ public class MainActivity extends Activity {
         }
         content.addView(habits);
 
-        // کارت مدیتیشن
         LinearLayout med = card(SKY);
         med.addView(tv("مدیتیشن شبانه", 16, DARK, true));
         med.addView(tv("۸ جلسه • آرامش قبل از خواب", 12, MUTED, false));
@@ -242,7 +273,52 @@ public class MainActivity extends Activity {
         content.addView(med);
     }
 
-    // ================= ورزش =================
+    // ================= 🤖 متدهای هوش مصنوعی =================
+    String buildUserSummary() {
+        return "نام: " + prefs.getString("assessment_نام", "-")
+            + "، هدف اصلی: " + prefs.getString("assessment_هدف اصلی", "-")
+            + "، سطح تجربه: " + prefs.getString("assessment_سطح تجربه", "-")
+            + "، بزرگ‌ترین چالش: " + prefs.getString("assessment_بزرگ‌ترین چالش", "-")
+            + "، روز برنامه: " + progressCalc.getCurrentDay()
+            + "، زنجیره: " + progressCalc.getCurrentStreak() + " روز";
+    }
+
+    void fetchDailyAdvice(final TextView target) {
+        if (!QwenClient.isAvailable()) {
+            target.setText("برای فعال‌شدن AI، کلید Groq را در QwenClient.java قرار دهید");
+            return;
+        }
+        QwenClient.ask("اطلاعات کاربر: " + buildUserSummary()
+            + " — یک توصیه کوتاه، انگیزشی و عملی برای امروز به فارسی بده (حداکثر ۳ خط) با ایموجی.",
+            new QwenClient.Callback() {
+                public void onSuccess(String answer) {
+                    runOnUiThread(() -> target.setText(answer));
+                }
+                public void onError(String error) {
+                    runOnUiThread(() -> target.setText("اتصال به AI ممکن نشد: " + error));
+                }
+            });
+    }
+
+    void askQwen(String question, final TextView target) {
+        if (!QwenClient.isAvailable()) {
+            target.setText("برای فعال‌شدن AI، کلید Groq را در QwenClient.java قرار دهید");
+            return;
+        }
+        QwenClient.ask("تو مربی هوشمند اپلیکیشن Great Change Pro هستی. اطلاعات کاربر: " + buildUserSummary()
+            + " — سوال کاربر: " + question
+            + " — کوتاه، دوستانه و عملی به فارسی جواب بده (حداکثر ۵ خط).",
+            new QwenClient.Callback() {
+                public void onSuccess(String answer) {
+                    runOnUiThread(() -> target.setText(answer));
+                }
+                public void onError(String error) {
+                    runOnUiThread(() -> target.setText("اتصال به AI ممکن نشد: " + error));
+                }
+            });
+    }
+
+    // ================= 🏋️ ورزش =================
     void workout() {
         stopMusic();
         clear();
@@ -300,7 +376,7 @@ public class MainActivity extends Activity {
         content.addView(c);
     }
 
-    // ================= ذهن =================
+    // ================= 🧠 ذهن =================
     void mind() {
         stopMusic();
         clear();
@@ -333,14 +409,13 @@ public class MainActivity extends Activity {
         }
     }
 
-    // ================= موسیقی =================
+    // ================= 🎵 موسیقی =================
     void music() {
         clear();
         TextView t = tv("🎵 موسیقی", 26, DARK, true);
         t.setGravity(Gravity.CENTER);
         content.addView(t);
 
-        // کارت در حال پخش
         LinearLayout np = card(CREAM);
         TextView npHead = tv("در حال پخش", 12, MUTED, false);
         npHead.setGravity(Gravity.CENTER);
@@ -371,7 +446,6 @@ public class MainActivity extends Activity {
         np.addView(ctrl);
         content.addView(np);
 
-        // پلی‌لیست‌ها
         for (int i = 0; i < trackIds.length; i++) {
             final int idx = i;
             LinearLayout c = card(i == currentTrack ? SKY : CREAM);
@@ -394,7 +468,7 @@ public class MainActivity extends Activity {
         music();
     }
 
-    // ================= پروفایل =================
+    // ================= 👤 پروفایل =================
     void profile() {
         stopMusic();
         clear();
@@ -426,7 +500,6 @@ public class MainActivity extends Activity {
         c.addView(edit);
         content.addView(c);
 
-        // اطلاعات کاربر
         LinearLayout stats = card(CREAM);
         stats.addView(tv("اطلاعات من", 16, DARK, true));
         stats.addView(infoRow("سن", prefs.getString("assessment_سن", "-")));
@@ -436,7 +509,6 @@ public class MainActivity extends Activity {
         stats.addView(infoRow("هدف اصلی", prefs.getString("assessment_هدف اصلی", "-")));
         content.addView(stats);
 
-        // ثبت وزن
         LinearLayout wc = card(CREAM);
         wc.addView(tv("⚖️ ثبت وزن امروز", 16, DARK, true));
         EditText w = editField("وزن فعلی (کیلوگرم)", "");
@@ -462,7 +534,7 @@ public class MainActivity extends Activity {
         return row;
     }
 
-    // ================= تنظیمات =================
+    // ================= ⚙️ تنظیمات =================
     void settings() {
         stopMusic();
         clear();
