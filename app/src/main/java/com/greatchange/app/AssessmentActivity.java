@@ -47,7 +47,8 @@ public class AssessmentActivity extends Activity {
     }
 
     TextView tv(String s, float z, int c, boolean bold) {
-        TextView v = new TextView(this);        v.setText(s);
+        TextView v = new TextView(this);
+        v.setText(s);
         v.setTextSize(z);
         v.setTextColor(c);
         v.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
@@ -142,10 +143,11 @@ public class AssessmentActivity extends Activity {
         progressText.setText(progress + "%");
 
         answersContainer.removeAllViews();
-        answerInput = null; // ریست کردن answerInput
+        answerInput = null;
 
         if (q.type.equals("text")) {
-            answerInput = new EditText(this);            answerInput.setHint("جواب خود را بنویسید");
+            answerInput = new EditText(this);
+            answerInput.setHint("جواب خود را بنویسید");
             answerInput.setHintTextColor(Color.rgb(120, 120, 125));
             answerInput.setTextColor(TEXT);
             answerInput.setTextSize(14);
@@ -188,13 +190,11 @@ public class AssessmentActivity extends Activity {
             answersContainer.addView(answerInput);
 
         } else if (q.type.equals("choice")) {
-            // استفاده از choices مستقیم از Question به جای parseOptions
             String[] options = q.choices;
             if (options == null) {
-                // fallback اگر choices خالی باشد
                 options = new String[]{"بله", "خیر"};
             }
-                        for (String option : options) {
+            for (String option : options) {
                 Button choiceBtn = button(option, TEXT);
                 choiceBtn.setBackgroundColor(Color.rgb(40, 40, 45));
                 choiceBtn.setPadding(dp(12), dp(12), dp(12), dp(12));
@@ -259,6 +259,7 @@ public class AssessmentActivity extends Activity {
 
         prefs.edit()
                 .putString("assessment_complete", "true")
+                .putBoolean("assessment_complete_check", true)
                 .putString("program_analysis", analysis)
                 .putString("program_recommendations", recommendations)
                 .putString("program_motivational", motivational)
@@ -292,7 +293,8 @@ public class AssessmentActivity extends Activity {
         startBtn.setOnClickListener(v -> {
             startActivity(new android.content.Intent(AssessmentActivity.this, MainActivity.class));
             finish();
-        });        content.addView(startBtn);
+        });
+        content.addView(startBtn);
     }
 
     LinearLayout createCard(int accentColor) {
