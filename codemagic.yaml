@@ -4,20 +4,18 @@ workflows:
     instance_type: linux_x2
     max_build_duration: 120
     
-    environment:
-      android_sdk: 35
-      java: 17
-      
     triggering:
       events:
         - push
         - pull_request
-      branch:
-        include_patterns:
-          - main
-          - develop
     
-    steps:
+    environment:
+      java: 17
+      xcode: latest
+      groups:
+        - android_credentials
+    
+    scripts:
       - name: Checkout
         script: |
           git clone https://github.com/$GITHUB_REPOSITORY.git .
@@ -26,24 +24,20 @@ workflows:
       
       - name: Set up JDK 17
         script: |
-          sudo apt-get update
-          sudo apt-get install -y openjdk-17-jdk
           export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
           export PATH=$JAVA_HOME/bin:$PATH
       
       - name: Build APK
         script: |
           chmod +x gradlew
-          ./gradlew clean
-          ./gradlew assembleDebug
+          ./gradlew clean assembleDebug
       
       - name: Upload APK
         script: |
-          cp app/build/outputs/apk/debug/app-debug.apk GreatChangePro-debug.apk
+          cp app/build/outputs/apk/debug/*.apk GreatChangePro-debug.apk || true
     
     artifacts:
-      - GreatChangePro-debug.apk
-      - app/build/outputs/**/*.apk
+      - build/**/*.apk
     
     publishing:
       email:
