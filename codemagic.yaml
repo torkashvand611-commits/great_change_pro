@@ -1,7 +1,7 @@
 workflows:
   android-workflow:
     name: Build APK
-    instance_type: linux_x2
+    instance_type: linux
     max_build_duration: 120
     
     triggering:
@@ -11,7 +11,6 @@ workflows:
     
     environment:
       java: 17
-      xcode: latest
       groups:
         - android_credentials
     
@@ -22,22 +21,18 @@ workflows:
           git fetch origin $GITHUB_REF
           git checkout $GITHUB_REF
       
-      - name: Set up JDK 17
-        script: |
-          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-          export PATH=$JAVA_HOME/bin:$PATH
-      
       - name: Build APK
         script: |
           chmod +x gradlew
           ./gradlew clean assembleDebug
       
-      - name: Upload APK
+      - name: Copy APK
         script: |
-          cp app/build/outputs/apk/debug/*.apk GreatChangePro-debug.apk || true
+          mkdir -p build_artifacts
+          cp app/build/outputs/apk/debug/*.apk build_artifacts/ || true
     
     artifacts:
-      - build/**/*.apk
+      - build_artifacts/**/*.apk
     
     publishing:
       email:
